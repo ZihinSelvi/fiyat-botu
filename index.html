@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp fiyat botu — müşterinin sorduğu fiyata sizin listenizden anında cevap</title>
+<meta name="description" content="Müşterinin WhatsApp'tan sorduğu fiyata, sizin kendi fiyat listenizden anında cevap veren bot. Listede olmayanı tahmin etmiyor, konuşmayı size devrediyor.">
+
+<!-- ===================================================================
+     YAYIN SÜRÜMÜ. Cloudflare Pages'e bu dosya "index.html" adıyla
+     yüklenir. Sarı taslak şeridi ve arama motoru engeli (robots meta)
+     silinmiştir, yani sayfa arama motorlarına açıktır.
+
+     DEĞİŞTİRİLECEK TEK SATIR aşağıdaki AYAR bloğunda:
+       tallyFormAdresi — Tally formunun embed adresi.
+                         Boş kalırsa form e-posta taslağı açar, sayfa
+                         yine çalışır. Adres yazılınca sayfa Tally
+                         formunu gösterir.
+
+     TELEFON NUMARASI KURALI (karar: 7 Ekim 2026):
+     Bu sayfada hiçbir telefon numarası yok — ne demo numarası ne kişisel
+     numara. Demo numarası birebir görüşmede veriliyor. Numara alanı
+     bilerek kaldırıldı; geri eklenmemeli.
+
+     Harici hiçbir servise bağlı değildir (Tally kurulana kadar).
+     Dosyayı çift tıklayıp açabilirsiniz.
+     =================================================================== -->
+<script>
+  const AYAR = {
+    eposta: "zihniselvi@gmail.com",
+    tallyFormAdresi: ""
+  };
+</script>
+
+<style>
+  :root{
+    --metin:#15202b;
+    --soluk:#5b6b7c;
+    --cizgi:#e3e8ee;
+    --zemin:#ffffff;
+    --acik:#f5f8fb;
+    --yesil:#1f8a4c;
+    --yesil-koyu:#176b3b;
+    --vurgu:#0b3d91;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--metin);
+    background:var(--zemin);
+    line-height:1.65;
+    font-size:17px;
+    -webkit-text-size-adjust:100%;
+  }
+  .kap{width:100%;max-width:760px;margin:0 auto;padding:0 20px}
+  section{padding:52px 0;border-bottom:1px solid var(--cizgi)}
+  section:last-of-type{border-bottom:0}
+  h1,h2,h3{line-height:1.25;margin:0 0 14px}
+  h1{font-size:clamp(1.65rem,5.2vw,2.5rem);letter-spacing:-.02em}
+  h2{font-size:clamp(1.3rem,4vw,1.65rem);letter-spacing:-.01em}
+  h3{font-size:1.05rem}
+  p{margin:0 0 16px}
+  strong{font-weight:650}
+
+  header.hero{padding:46px 0 10px;border-bottom:0}
+  .ustbilgi{font-size:.84rem;color:var(--soluk);letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px}
+  .altbaslik{font-size:clamp(1.02rem,3.2vw,1.18rem);color:var(--soluk);margin:0 0 26px;max-width:620px}
+
+  .dugmeler{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+  .dugme{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    padding:15px 24px;border-radius:10px;border:1px solid transparent;
+    font-size:1rem;font-weight:600;text-decoration:none;cursor:pointer;
+    font-family:inherit;transition:background .15s,border-color .15s;
+  }
+  .dugme.ana{background:var(--yesil);color:#fff}
+  .dugme.ana:hover{background:var(--yesil-koyu)}
+  .dugme.ikinci{background:#fff;color:var(--metin);border-color:#c8d2dd}
+  .dugme.ikinci:hover{border-color:#8fa0b2}
+  .dugme svg{flex:0 0 auto}
+  .dugme-not{font-size:.88rem;color:var(--soluk);margin:0}
+
+  .fayda{border:1px solid var(--cizgi);border-radius:12px;padding:20px 22px;margin-bottom:14px;background:var(--zemin)}
+  .fayda h3{margin-bottom:8px}
+  .fayda p{margin:0;color:var(--soluk)}
+
+  ol.adimlar{list-style:none;counter-reset:a;padding:0;margin:0}
+  ol.adimlar li{counter-increment:a;position:relative;padding-left:52px;margin-bottom:24px}
+  ol.adimlar li::before{
+    content:counter(a);position:absolute;left:0;top:1px;
+    width:34px;height:34px;border-radius:50%;
+    background:var(--acik);border:1px solid var(--cizgi);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:.95rem;color:var(--vurgu);
+  }
+  ol.adimlar li h3{margin-bottom:5px}
+  ol.adimlar li p{margin:0;color:var(--soluk)}
+
+  .kutu{background:var(--acik);border:1px solid var(--cizgi);border-radius:12px;padding:22px}
+  .kutu p:last-child{margin-bottom:0}
+
+  table.fiyat{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:1rem}
+  table.fiyat th,table.fiyat td{text-align:left;padding:12px 0;border-bottom:1px solid var(--cizgi)}
+  table.fiyat th{font-weight:600;color:var(--soluk);font-size:.9rem}
+  table.fiyat td:last-child{text-align:right;white-space:nowrap;font-weight:650}
+
+  details.sss{border-bottom:1px solid var(--cizgi);padding:4px 0}
+  details.sss summary{
+    cursor:pointer;padding:14px 32px 14px 0;font-weight:600;position:relative;list-style:none;
+  }
+  details.sss summary::-webkit-details-marker{display:none}
+  details.sss summary::after{
+    content:"+";position:absolute;right:4px;top:12px;font-size:1.3rem;font-weight:400;color:var(--soluk);
+  }
+  details.sss[open] summary::after{content:"\2013"}
+  details.sss p{color:var(--soluk);margin:0 0 16px}
+
+  form .alan{margin-bottom:18px}
+  form label{display:block;font-weight:600;font-size:.95rem;margin-bottom:6px}
+  form .ipucu{display:block;font-weight:400;color:var(--soluk);font-size:.86rem;margin-top:2px}
+  form input,form select,form textarea{
+    width:100%;padding:13px 14px;font-size:1rem;font-family:inherit;color:var(--metin);
+    border:1px solid #c8d2dd;border-radius:9px;background:#fff;
+  }
+  form input:focus,form select:focus,form textarea:focus{outline:2px solid var(--vurgu);outline-offset:1px;border-color:var(--vurgu)}
+  form textarea{min-height:88px;resize:vertical}
+  .form-not{font-size:.88rem;color:var(--soluk);margin:14px 0 0}
+
+  footer{padding:36px 0 56px;color:var(--soluk);font-size:.92rem}
+  footer a{color:var(--metin)}
+  .iletisim-satir{display:flex;flex-wrap:wrap;gap:10px 26px;margin:0 0 20px;padding:0;list-style:none}
+  .iletisim-satir a{font-weight:600;text-decoration:none;border-bottom:1px solid var(--cizgi)}
+
+  @media (max-width:520px){
+    body{font-size:16px}
+    section{padding:40px 0}
+    .dugme{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="kap">
+    <p class="ustbilgi">Reklam ve baskı firmaları için</p>
+    <h1>Müşterinin WhatsApp&rsquo;tan sorduğu fiyata, sizin kendi fiyat listenizden anında cevap</h1>
+    <p class="altbaslik">
+      Listede olmayanı tahmin etmiyor, konuşmayı size devrediyor.
+    </p>
+    <div class="dugmeler">
+      <a class="dugme ana" href="#form">Demo isteyin</a>
+      <a class="dugme ikinci" href="#nasil">Nasıl çalıştığını okuyun</a>
+    </div>
+    <p class="dugme-not">
+      Çalışan bir demo botu var, kendiniz deneyebilirsiniz. Formu bırakın, demo numarasını
+      size ben göndereyim. Demo bot örnek bir fiyat listesiyle çalışıyor &mdash; yani
+      cevaplar sizin fiyatlarınız değil, botun nasıl çalıştığını gösteren örnek fiyatlar.
+    </p>
+  </div>
+</header>
+
+<section id="sorun">
+  <div class="kap">
+    <h2>Aynı sorular gün içinde tekrar tekrar geliyor</h2>
+    <p>
+      Reklam ve baskı işinde müşteri fiyatı WhatsApp&rsquo;tan soruyor. &ldquo;50x70 afiş kaça?&rdquo;,
+      &ldquo;bin adet kartvizit ne kadar?&rdquo; Aynı sorular gün içinde tekrar tekrar geliyor. Siz iş
+      başındayken cevap gecikiyor, müşteri bekleyemeyip başka yere soruyor. Kurduğum bot bu
+      soruları <strong>sizin kendi fiyat listenizden</strong> anında cevaplıyor. Fiyat dışındaki
+      sorulara da cevap veriyor, sonra konuşmayı size devrediyor. Listede olmayan bir ürün ya da
+      ölçü gelirse tahmin yürütmüyor &mdash; yine size devrediyor. Üstelik ilk haftalarda gölge
+      modda başlıyoruz: bot ne cevap verecekti, siz görüyorsunuz, müşteriye hiçbir şey gitmiyor.
+      Canlıya geçiş sizin onayınızla.
+    </p>
+  </div>
+</section>
+
+<section id="faydalar">
+  <div class="kap">
+    <h2>Üç şey yapıyor</h2>
+
+    <div class="fayda">
+      <h3>1. Anında cevap, sizin fiyatlarınızla</h3>
+      <p>
+        Kendi fiyat listenizi (Excel, PDF, hatta düz metin) yüklüyorum. Bot hazır bir cevap
+        yazmıyor; sizin listenizden ve sizin hesaplama mantığınızla fiyatı çıkarıyor.
+      </p>
+    </div>
+
+    <div class="fayda">
+      <h3>2. Listede olmayanı tahmin etmiyor, size devrediyor</h3>
+      <p>
+        Listede bulunmayan bir ürün ya da ölçü sorulursa bot tahmin yürütmüyor. Konuşmayı
+        doğrudan size devrediyor. Fiyat dışındaki sorulara da cevap veriyor, sonra yine size
+        devrediyor &mdash; müşteri boşlukta kalmıyor, karar sizde kalıyor.
+      </p>
+    </div>
+
+    <div class="fayda">
+      <h3>3. Önce gölge modda, siz izleyerek başlıyor</h3>
+      <p>
+        İlk 1-2 hafta müşteriye hiçbir şey gitmiyor. Bot cevapları yalnızca size görünüyor, siz
+        kendi cevabınızla karşılaştırıyorsunuz. Botun sizin fiyatlarınızla ne yaptığını canlıya
+        geçmeden kendiniz görüyorsunuz. Canlıya geçiş sadece sizin onayınızla.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="nasil">
+  <div class="kap">
+    <h2>Nasıl çalışır</h2>
+    <ol class="adimlar">
+      <li>
+        <h3>Fiyat listenizi bana veriyorsunuz</h3>
+        <p>
+          Format önemli değil: Excel, PDF veya düz metin. Yanına birkaç gerçek WhatsApp fiyat
+          sorusu örneği ekliyorsunuz. Sonra kısa bir telefon görüşmesi: hangi numaradan
+          çalışacağız, müşteri cevaplarını kim yazacak, gölge mod nasıl kurulacak.
+        </p>
+      </li>
+      <li>
+        <h3>Gölge modda başlıyoruz</h3>
+        <p>
+          Teknik kurulum yaklaşık 2-3 iş günü. Sonra yaklaşık 1-2 hafta gölge mod: bot cevapları
+          sadece size görünür, müşteriye hiçbir şey gitmez. Siz kendi cevabınızla
+          karşılaştırırsınız.
+        </p>
+      </li>
+      <li>
+        <h3>Sizin onayınızla canlıya geçiyor</h3>
+        <p>
+          Gördüğünüzden memnunsanız bot müşteriye cevap vermeye başlar. Listede olmayan bir şey
+          sorulduğunda ya da fiyat dışı bir konu geldiğinde konuşmayı size devreder. Karar her
+          zaman sizde kalır.
+        </p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="fiyat">
+  <div class="kap">
+    <h2>Fiyat</h2>
+    <table class="fiyat">
+      <tr>
+        <th>Kurulum &mdash; 2026 sonuna kadar geçerli</th>
+        <td>10.000 TL</td>
+      </tr>
+      <tr>
+        <th>Sistemin kontrolü ve yönetimi, aylık</th>
+        <td>3.000 TL</td>
+      </tr>
+    </table>
+    <div class="kutu">
+      <p>
+        İlk sıradaki birkaç firmaya kurulumu ücretsiz yapıyorum. Sıra dolduğunda bu söz biter.
+        Konuşmak isterseniz aşağıdaki formu bırakın.
+      </p>
+      <p>Ödeme şeklini görüşmede netleştiriyoruz.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sss">
+  <div class="kap">
+    <h2>Sık sorulan sorular</h2>
+
+    <details class="sss">
+      <summary>Bot bilmediği bir şey sorulunca ne yapıyor?</summary>
+      <p>
+        Tahmin yürütmüyor. Listede olmayan bir ürün ya da ölçü sorulursa konuşmayı size
+        devrediyor. Fiyat dışındaki sorulara da cevap veriyor, sonra yine size devrediyor.
+        Müşteri boşlukta kalmıyor, karar sizde kalıyor.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Botun benim fiyatlarımla ne yaptığını önceden görebilir miyim?</summary>
+      <p>
+        Evet, gölge mod bunun için var. İlk yaklaşık 1-2 hafta müşteriye hiçbir şey gitmiyor.
+        Bot cevapları yalnızca size görünüyor, siz kendi cevabınızla karşılaştırıyorsunuz.
+        Canlıya geçiş sadece sizin onayınızla.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Fiyat listemi nasıl vereceğim?</summary>
+      <p>
+        Nasıl tutuyorsanız öyle. Excel, PDF veya düz metin &mdash; format önemli değil. Listeyi
+        bota ben yüklüyorum, sizin tarafta teknik bir iş yok.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Ne kadar sürede hazır olur?</summary>
+      <p>
+        Liste elime geçtikten sonra teknik kurulum yaklaşık 2-3 iş günü. Ardından yaklaşık 1-2
+        hafta gölge mod. Bu süreler yaklaşık; kesin taahhüt vermiyorum.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Hangi numarayla çalışıyor?</summary>
+      <p>
+        Sizin WhatsApp Business numaranızla. Hangi numaradan çalışacağımızı kurulum öncesi kısa
+        telefon görüşmesinde netleştiriyoruz.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>E-postadan gelen fiyat sorularını da cevaplıyor mu?</summary>
+      <p>
+        E-posta için de hazır, istenirse açılır. Şu an WhatsApp tarafı tamamlanmış ve test
+        edilmiş durumda; anlatırken onu gösteriyorum.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Bot Türkçe mi?</summary>
+      <p>Evet, Türkçe çalışıyor.</p>
+    </details>
+
+    <details class="sss">
+      <summary>Ben reklam ya da baskı işinde değilim, bende de işe yarar mı?</summary>
+      <p>
+        Bilinen alan reklam ve baskı firmaları: müşterilerin çoğu fiyatı WhatsApp&rsquo;tan soruyor
+        ve her talep firmanın kendi listesinden hesaplanan bir cevap gerektiriyor. Başka
+        sektörlerde henüz denemedim, bu yüzden söz vermiyorum. İşiniz buna benziyorsa
+        konuşalım, birlikte bakalım.
+      </p>
+    </details>
+
+    <details class="sss">
+      <summary>Ödemeyi nasıl yapacağım?</summary>
+      <p>Ödeme şeklini görüşmede netleştiriyoruz.</p>
+    </details>
+
+    <details class="sss">
+      <summary>Botu önce kendim deneyebilir miyim?</summary>
+      <p>
+        Evet. Aşağıdaki formu bırakın, demo botun numarasını size göndereyim. Örnek bir fiyat
+        listesiyle çalışıyor; verdiği fiyatlar sizin fiyatlarınız değil, botun nasıl
+        çalıştığını gösteren örnek fiyatlar.
+      </p>
+    </details>
+  </div>
+</section>
+
+<section id="form">
+  <div class="kap">
+    <h2>Demo isteyin</h2>
+    <p>
+      Şu beş soruyu yanıtlayın, size döneyim. Demo botun numarasını da o zaman gönderiyorum
+      &mdash; botu kendiniz deneyip fiyat sorabilirsiniz.
+    </p>
+
+    <!-- ===========================================================
+         FORM
+         Tally kullanacaksanız: AYAR.tallyFormAdresi'ni doldurun;
+         aşağıdaki form yerine Tally formu gösterilir.
+         Boş bırakırsanız form e-posta üzerinden gönderilir:
+         cevaplar hazır bir e-posta taslağı olarak açılır, ziyaretçi
+         kendisi gönderir. Her iki yol da ücretsizdir.
+         Telefon numarası bilerek yok (karar: 7 Ekim 2026).
+         =========================================================== -->
+    <div id="tallyKap" hidden>
+      <iframe id="tallyCerceve" title="Demo talep formu" src="" loading="lazy"
+              style="width:100%;min-height:560px;border:0"></iframe>
+    </div>
+
+    <form id="demoForm" novalidate>
+      <div class="alan">
+        <label for="firma">Firma adı
+          <span class="ipucu">Tabelada ne yazıyorsa</span>
+        </label>
+        <input type="text" id="firma" name="firma" autocomplete="organization" required>
+      </div>
+
+      <div class="alan">
+        <label for="sektor">Ne iş yapıyorsunuz?
+          <span class="ipucu">Örnek: dijital baskı, tabela, matbaa, promosyon ürünleri</span>
+        </label>
+        <input type="text" id="sektor" name="sektor" required>
+      </div>
+
+      <div class="alan">
+        <label for="numara">WhatsApp numaranız
+          <span class="ipucu">Size buradan döneyim</span>
+        </label>
+        <input type="tel" id="numara" name="numara" inputmode="tel" autocomplete="tel" required>
+      </div>
+
+      <div class="alan">
+        <label for="adet">Gün içinde kaç fiyat sorusu alıyorsunuz?</label>
+        <select id="adet" name="adet" required>
+          <option value="" selected>Seçin</option>
+          <option>5&rsquo;ten az</option>
+          <option>5 &ndash; 15</option>
+          <option>15 &ndash; 40</option>
+          <option>40&rsquo;tan fazla</option>
+          <option>Bilmiyorum</option>
+        </select>
+      </div>
+
+      <div class="alan">
+        <label for="not">Eklemek istediğiniz bir şey var mı?
+          <span class="ipucu">İsteğe bağlı</span>
+        </label>
+        <textarea id="not" name="not"></textarea>
+      </div>
+
+      <button type="submit" class="dugme ana" style="width:100%">Gönder</button>
+      <p class="form-not" id="formNot">
+        Gönder&rsquo;e basınca e-posta programınız açılır, yazdıklarınız hazır bir taslak olarak
+        gelir. Siz göndermeden bana hiçbir şey ulaşmaz.
+      </p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="kap">
+    <h2 style="font-size:1.15rem">İletişim</h2>
+    <ul class="iletisim-satir">
+      <li><a href="#form">Demo talebi bırakın</a></li>
+      <li><a id="iletisimMail" href="#form">E-posta gönderin</a></li>
+    </ul>
+    <p>
+      Demo bot örnek bir fiyat listesiyle çalışıyor. Verdiği fiyatlar örnektir, sizin
+      fiyatlarınız değildir.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Sayfada telefon numarası yok (karar: 7 Ekim 2026). Demo numarası
+  // birebir görüşmede veriliyor, bu yüzden hiçbir WhatsApp bağlantısı kurulmuyor.
+  var epostaHazir = !!AYAR.eposta && AYAR.eposta.indexOf("ornek@") !== 0;
+
+  if (epostaHazir) {
+    var mail = document.getElementById("iletisimMail");
+    mail.href = "mailto:" + AYAR.eposta;
+    mail.textContent = AYAR.eposta;
+  }
+
+  // Tally varsa formun yerine onu göster
+  if (AYAR.tallyFormAdresi) {
+    document.getElementById("tallyCerceve").src = AYAR.tallyFormAdresi;
+    document.getElementById("tallyKap").hidden = false;
+    document.getElementById("demoForm").hidden = true;
+    return;
+  }
+
+  // Tally yoksa: form e-posta taslağı olarak açılır, ziyaretçi kendisi gönderir
+  var not = document.getElementById("formNot");
+  if (!epostaHazir) {
+    not.textContent = "Form henüz bir adrese bağlı değil. AYAR.eposta veya " +
+      "AYAR.tallyFormAdresi doldurulmalı.";
+  }
+
+  document.getElementById("demoForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = function (id) { return (document.getElementById(id).value || "").trim(); };
+    if (!d("firma") || !d("sektor") || !d("numara") || !d("adet")) {
+      not.textContent =
+        "Firma adı, ne iş yaptığınız, numaranız ve günlük soru sayısı gerekli.";
+      return;
+    }
+    if (!epostaHazir) {
+      not.textContent = "Form henüz bir adrese bağlı değil, gönderilemiyor.";
+      return;
+    }
+    var satirlar = [
+      "Firma: " + d("firma"),
+      "İş: " + d("sektor"),
+      "WhatsApp: " + d("numara"),
+      "Günlük fiyat sorusu: " + d("adet")
+    ];
+    if (d("not")) satirlar.push("Not: " + d("not"));
+    window.location.href = "mailto:" + AYAR.eposta +
+      "?subject=" + encodeURIComponent("Demo talebi — " + d("firma")) +
+      "&body=" + encodeURIComponent(satirlar.join("\n"));
+  });
+})();
+</script>
+
+</body>
+</html>
