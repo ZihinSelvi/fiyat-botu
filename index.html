@@ -11,24 +11,29 @@
      yüklenir. Sarı taslak şeridi ve arama motoru engeli (robots meta)
      silinmiştir, yani sayfa arama motorlarına açıktır.
 
-     DEĞİŞTİRİLECEK TEK SATIR aşağıdaki AYAR bloğunda:
-       tallyFormAdresi — Tally formunun embed adresi.
-                         Boş kalırsa form e-posta taslağı açar, sayfa
-                         yine çalışır. Adres yazılınca sayfa Tally
-                         formunu gösterir.
+     AYAR bloğunun iki satırı da dolu (8 Ekim 2026):
+       eposta          — zihniselvi@gmail.com
+       tallyFormAdresi — https://tally.so/r/1A1q2O
+                         Dolu olduğu için sayfa Tally formunu gösteriyor.
+                         Boşaltılırsa sayfadaki yedek form geri gelir ve
+                         cevapları e-posta taslağı olarak açar.
 
      TELEFON NUMARASI KURALI (karar: 7 Ekim 2026):
      Bu sayfada hiçbir telefon numarası yok — ne demo numarası ne kişisel
      numara. Demo numarası birebir görüşmede veriliyor. Numara alanı
      bilerek kaldırıldı; geri eklenmemeli.
 
-     Harici hiçbir servise bağlı değildir (Tally kurulana kadar).
-     Dosyayı çift tıklayıp açabilirsiniz.
+     FİYAT KURALI: sayfada sadece genel liste var (10.000 TL kurulum,
+     aylık 3.000 TL). Pilot aylık ücreti bu sayfada geçmez.
+
+     Tek harici bağlantı: Tally formu (ücretsiz). Başka hiçbir servise
+     bağlı değildir. Dosyayı çift tıklayıp açabilirsiniz; Tally formu
+     yalnız internet varken görünür.
      =================================================================== -->
 <script>
   const AYAR = {
     eposta: "zihniselvi@gmail.com",
-    tallyFormAdresi: ""
+    tallyFormAdresi: "https://tally.so/r/1A1q2O"
   };
 </script>
 
@@ -353,22 +358,25 @@
   <div class="kap">
     <h2>Demo isteyin</h2>
     <p>
-      Şu beş soruyu yanıtlayın, size döneyim. Demo botun numarasını da o zaman gönderiyorum
+      Formu doldurun, size döneyim. Demo botun numarasını da o zaman gönderiyorum
       &mdash; botu kendiniz deneyip fiyat sorabilirsiniz.
     </p>
 
     <!-- ===========================================================
          FORM
-         Tally kullanacaksanız: AYAR.tallyFormAdresi'ni doldurun;
-         aşağıdaki form yerine Tally formu gösterilir.
-         Boş bırakırsanız form e-posta üzerinden gönderilir:
-         cevaplar hazır bir e-posta taslağı olarak açılır, ziyaretçi
-         kendisi gönderir. Her iki yol da ücretsizdir.
+         AYAR.tallyFormAdresi dolu olduğu için Tally formu gösteriliyor;
+         aşağıdaki yedek form gizleniyor. Ayar boşaltılırsa yedek form
+         geri gelir ve cevapları e-posta taslağı olarak açar.
+         Her iki yol da ücretsizdir.
          Telefon numarası bilerek yok (karar: 7 Ekim 2026).
          =========================================================== -->
     <div id="tallyKap" hidden>
       <iframe id="tallyCerceve" title="Demo talep formu" src="" loading="lazy"
-              style="width:100%;min-height:560px;border:0"></iframe>
+              style="width:100%;min-height:700px;border:0"></iframe>
+      <p class="form-not">
+        Form görünmüyorsa <a id="tallyYedekBag" href="#form" rel="noopener">bu bağlantıdan</a>
+        doldurabilirsiniz.
+      </p>
     </div>
 
     <form id="demoForm" novalidate>
@@ -447,9 +455,19 @@
     mail.textContent = AYAR.eposta;
   }
 
-  // Tally varsa formun yerine onu göster
+  // Tally varsa formun yerine onu göster.
+  // Tally'nin paylaşım adresi .../r/KOD biçiminde; sayfa içine gömmek için
+  // .../embed/KOD gerekiyor. Dönüşümü burada yapıyoruz, böylece AYAR satırında
+  // Tally'de görünen adres duruyor. Zaten embed adresi yazılmışsa dokunulmaz.
   if (AYAR.tallyFormAdresi) {
-    document.getElementById("tallyCerceve").src = AYAR.tallyFormAdresi;
+    var paylasimAdresi = AYAR.tallyFormAdresi;
+    var gomuluAdres = paylasimAdresi.replace("tally.so/r/", "tally.so/embed/");
+    if (gomuluAdres.indexOf("tally.so/embed/") !== -1 && gomuluAdres.indexOf("?") === -1) {
+      gomuluAdres += "?alignLeft=1&hideTitle=1&transparentBackground=1";
+    }
+    document.getElementById("tallyCerceve").src = gomuluAdres;
+    document.getElementById("tallyYedekBag").href = paylasimAdresi;
+    document.getElementById("tallyYedekBag").target = "_blank";
     document.getElementById("tallyKap").hidden = false;
     document.getElementById("demoForm").hidden = true;
     return;
